@@ -1,4 +1,4 @@
-# GoddessBot
+# GoddessBot Pre-alpha
 Bot for discord written in c# using Discord.net
 
 Bot is still incomplete, but some functions working like yande or playing music from yt or local drive.
