@@ -52,7 +52,7 @@ namespace GoddessBot.Modules
 
 
             await ReplyAsync("Pong: " + Program.Info._client.Latency + "ms");
-            if (Program.Info._client.Latency < 1500)
+            if (Program.Info._client.Latency < 1300)
             {
                 await ReplyAsync("for bot is still good ping");
                 await Context.Channel.SendFileAsync("Pic\\lightningspeed.jpg");
@@ -84,10 +84,17 @@ namespace GoddessBot.Modules
             catch { await Context.Channel.SendMessageAsync("nothing found"); }
         }
 
-        [Command("follow")]
-        public async Task Follow()
+        [Command("retard")]
+        [Alias("r")]
+        public async Task Retard([Remainder] string msg)
         {
-            await _comm.Follow();
+            await _comm.Retard(Context,msg);
+
         }
+        //[Command("follow")]
+        //public async Task Follow()
+        //{
+        //    await _comm.Follow();
+        //}
     }
 }

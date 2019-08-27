@@ -39,7 +39,6 @@ namespace GoddessBot.Services
             _client.MessageUpdated += MessageUpdated;
 
             _client.UserJoined += _client_UserJoinedAsync;
-<<<<<<< HEAD
            // _client.UserVoiceStateUpdated += _client_UserVoiceStateUpdated;
             _client.VoiceServerUpdated += _client_VoiceServerUpdated;
 
@@ -61,8 +60,7 @@ namespace GoddessBot.Services
             Console.WriteLine(arg.Endpoint);
 
             return null;
-=======
->>>>>>> parent of abcecd3... gg
+
         }
 
         public CommandHandler()
@@ -193,13 +191,33 @@ namespace GoddessBot.Services
            
 
         }
-
-       public Task Follow() 
+        public async Task Retard(ICommandContext message, string mess)
         {
-            follow = (follow)? false : true;
-            return null;
+            string tmp = "";
+            int i = 0;
+            foreach(char c in mess)
+            {
+                if (++i % 2 == 0)
+                {
+                    tmp += c.ToString().ToLower();
+                }
+                else
+                {
+                    tmp += c.ToString().ToUpper();
+                }
+            }
+
+           await message.Channel.SendMessageAsync(tmp);
+
 
         }
+
+       //public Task Follow() 
+       // {
+       //     follow = (follow)? false : true;
+       //     return null;
+
+       // }
 
     }
 }

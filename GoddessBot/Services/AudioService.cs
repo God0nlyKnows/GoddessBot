@@ -17,6 +17,7 @@ namespace GoddessBot.Services
     {
 
         private readonly ConcurrentDictionary<ulong, IAudioClient> ConnectedChannels = new ConcurrentDictionary<ulong, IAudioClient>();
+        private bool loop = false;
 
         class AudioHandler
         {
@@ -53,21 +54,21 @@ namespace GoddessBot.Services
         public async Task SendAsync(IGuild guild, IMessageChannel channel, string path)
         {
 
-<<<<<<< HEAD
+            var handler = new AudioHandler();
+
             try
             {
 
-                if (ffmpeg != null)
-                    ffmpeg.Kill();
+                if (handler.ffmpeg != null)
+                    handler.ffmpeg.Kill();
                 
 
             }
             catch { }
-=======
-            var handler = new AudioHandler();
+
             
             
->>>>>>> parent of abcecd3... gg
+
             if (path.Contains("you"))
             {
                 IAudioClient client;
@@ -78,19 +79,22 @@ namespace GoddessBot.Services
                     
                     
                     CreateYoutubeStream(path);
-                    using (handler.ffmpeg = CreateStream("Music\\mp3.mp3"))
-                    using (handler.stream = client.CreatePCMStream(AudioApplication.Music, 96000,500,80))
+                    do
                     {
-                        
-                        try
+                        using (handler.ffmpeg = CreateStream("Music\\mp3.mp3"))
+                        using (handler.stream = client.CreatePCMStream(AudioApplication.Music, 96000, 500, 80))
                         {
 
-                            handler.ffmpeg.StandardOutput.BaseStream.CopyTo(handler.stream);
+                            try
+                            {
 
+                                handler.ffmpeg.StandardOutput.BaseStream.CopyTo(handler.stream);
+
+                            }
+                            catch (Exception e) { Console.WriteLine(e.ToString()); }
+                            finally { await handler.stream.FlushAsync(); }
                         }
-                        catch (Exception e) { Console.WriteLine(e.ToString()); }
-                        finally { await handler.stream.FlushAsync(); }
-                    }
+                    } while (loop);
                 }
 
 
@@ -130,8 +134,8 @@ namespace GoddessBot.Services
         public async Task SendFileAsync(SocketCommandContext context, string path)
         {
             await context.Channel.SendFileAsync(path);
+      
         }
-
       
 
         public async Task StreamRadio(IAudioClient client, string url)
@@ -168,11 +172,13 @@ namespace GoddessBot.Services
 
         private void CreateYoutubeStream(string url)
         {
+            if (File.Exists("Music\\mp3.mp3"))
+                File.Delete("Music\\mp3.mp3");
             ProcessStartInfo process = new ProcessStartInfo
             {
                 
                 FileName = @"youtube-dl",
-                Arguments = $@" --audio-quality 0 --extract-audio --audio-format mp3 {url} -o Music/mp3.mp3",
+                Arguments = $@" --audio-quality 0 --extract-audio --audio-format mp3 {url} -o Music\mp3.mp3",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = false
@@ -197,6 +203,14 @@ namespace GoddessBot.Services
                 await client.StopAsync();
                 //await Log(LogSeverity.Info, $"Disconnected from voice on {guild.Name}.");
             }
+        }
+
+        public async Task Loop(IMessage message)
+        {
+            loop = (loop) ? false : true;
+            string reply = (loop) ? "loop enabled" : "loop disabled";
+            await message.Channel.SendMessageAsync(reply);
+           
         }
     }
 }

@@ -54,5 +54,12 @@ namespace GoddessBot.Modules
             //song = song.Replace("\"", "");
             await _service.SendAsync(Context.Guild, Context.Channel, song);
         }
+
+        [Command("loop")]
+        public async Task Loop()
+        {
+
+            await _service.Loop(Context.Message);
+        }
     }
 }
