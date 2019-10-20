@@ -76,7 +76,36 @@ namespace GoddessBot.Services
                 {
                     System.Console.WriteLine($"Starting playback of {path} in {guild.Name}");
                     
-                    
+                    if (path.Contains("playlist"))                  //need to clean this mess
+                    {
+                        GetYoutubeList(path);
+
+
+                        foreach (string line in File.ReadAllLines(@"Music\queue.txt"))
+                        {
+                            CreateYoutubeStream(line);
+
+                            do
+                            {
+                                using (handler.ffmpeg = CreateStream(@"Music\mp3.mp3"))
+                                using (handler.stream = client.CreatePCMStream(AudioApplication.Music, 96000, 1000, 1))
+                                {
+                                    try
+                                    {
+
+                                        handler.ffmpeg.StandardOutput.BaseStream.CopyTo(handler.stream);
+
+                                    }
+                                    catch (Exception e) { Console.WriteLine(e.ToString()); }
+                                    finally { await handler.stream.FlushAsync(); }
+                                }
+                            } while (loop);
+                        }
+
+
+                    }
+                     else
+                    {
                     
                     CreateYoutubeStream(path);
                     do
@@ -95,33 +124,11 @@ namespace GoddessBot.Services
                             finally { await handler.stream.FlushAsync(); }
                         }
                     } while (loop);
-                }
-
-
-            }
-            else
-            {
-                if (!File.Exists(path))
-                {
-                    await channel.SendMessageAsync("File does not exist.");
-                    return;
-                }
-                IAudioClient client;
-                if (ConnectedChannels.TryGetValue(guild.Id, out client))
-                {
-                    System.Console.WriteLine($"Starting file {path} in {guild.Name}");
-                    using (handler.ffmpeg = CreateStream(path))
-                    using (handler.stream = client.CreatePCMStream(AudioApplication.Music))
-                    {
-                        
-                        try {
-                        await handler.ffmpeg.StandardOutput.BaseStream.CopyToAsync(handler.stream);
-                         
-                        }
-                        catch (Exception e) { Console.WriteLine(e.ToString()); }
-                        finally { await handler.stream.FlushAsync(); }
                     }
+
+
                 }
+           
             }
         }
 
@@ -178,11 +185,29 @@ namespace GoddessBot.Services
             {
                 
                 FileName = @"youtube-dl",
-                Arguments = $@" --audio-quality 0 --extract-audio --audio-format mp3 {url} -o Music\mp3.mp3",
+                Arguments = $@" --audio-quality 0 --extract-audio --no-continue --audio-format mp3 {url} -o Music\mp3.mp3",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = false
             };
+            var handler = Process.Start(process);
+            handler.WaitForExit();
+            
+        }
+
+        private void GetYoutubeList(string url)
+        {
+
+            ProcessStartInfo process = new ProcessStartInfo
+            {
+
+                FileName = "D:\\home\\site\\wwwroot\\app_data\\Music\\bat.bat",
+                Arguments = $"{url}",
+                UseShellExecute = false,
+                RedirectStandardOutput = false,
+                CreateNoWindow = false
+            };
+            Console.WriteLine($"D:\\home\\site\\wwwroot\\app_data\\Jobs\\Continuous\\GoddessBot\\3rdPartyApp\\youtube-dl --dump-json --flat-playlist \"{url}\" | D:\\home\\site\\wwwroot\\app_data\\Jobs\\Continuous\\GoddessBot\\3rdPartyApp\\jq -r \".id\" | D:\\home\\site\\wwwroot\\app_data\\Jobs\\Continuous\\GoddessBot\\3rdPartyApp\\sed\\sed \"s_^_https://youtu.be/_\" > D:\\home\\site\\wwwroot\\app_data\\Music\\queue.txt");
             var handler = Process.Start(process);
             handler.WaitForExit();
             
