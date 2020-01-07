@@ -1,22 +1,31 @@
 {
   "runtimeTarget": {
     "name": ".NETCoreApp,Version=v2.1",
-    "signature": "f2103171b0db04139bb3b08eeb8d1ece04d04e45"
+    "signature": "df3a62b3096e596a29a2f058414d9d6a23f11bf3"
   },
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v2.1": {
       "GoddessBot/1.0.0": {
         "dependencies": {
+          "BooruSharp": "1.4.6",
           "Discord.Net": "2.1.1",
           "Microsoft.Extensions.Configuration": "2.2.0",
           "Microsoft.Extensions.Configuration.Json": "2.2.0",
           "Microsoft.Extensions.DependencyInjection": "2.2.0",
-          "Victoria": "3.3.1",
-          "Yande.re": "0.1.0"
+          "Yande.re": "0.1.0",
+          "YoutubeSearch.dll": "1.1.0"
         },
         "runtime": {
           "GoddessBot.dll": {}
+        }
+      },
+      "BooruSharp/1.4.6": {
+        "runtime": {
+          "lib/net45/BooruSharp.dll": {
+            "assemblyVersion": "1.1.0.0",
+            "fileVersion": "1.1.0.0"
+          }
         }
       },
       "Discord.Net/2.1.1": {
@@ -306,17 +315,6 @@
           "System.Runtime": "4.3.0"
         }
       },
-      "Victoria/3.3.1": {
-        "dependencies": {
-          "Discord.Net.WebSocket": "2.1.1"
-        },
-        "runtime": {
-          "lib/netstandard2.0/Victoria.dll": {
-            "assemblyVersion": "3.3.1.0",
-            "fileVersion": "3.3.1.0"
-          }
-        }
-      },
       "Yande.re/0.1.0": {
         "dependencies": {
           "Newtonsoft.Json": "11.0.2"
@@ -327,6 +325,14 @@
             "fileVersion": "0.1.0.0"
           }
         }
+      },
+      "YoutubeSearch.dll/1.1.0": {
+        "runtime": {
+          "lib/YoutubeSearch.dll": {
+            "assemblyVersion": "0.1.1.0",
+            "fileVersion": "0.1.1.0"
+          }
+        }
       }
     }
   },
@@ -335,6 +341,13 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "BooruSharp/1.4.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-BO9XMHPv2Y6U+BXJvjEWB1qToZrUiBc8DB5J2QXwLe7P86U/X36PchBKENX0Px9RRhuvAuX8WGVHfwo15TAKJg==",
+      "path": "boorusharp/1.4.6",
+      "hashPath": "boorusharp.1.4.6.nupkg.sha512"
     },
     "Discord.Net/2.1.1": {
       "type": "package",
@@ -574,19 +587,19 @@
       "path": "system.threading.tasks/4.3.0",
       "hashPath": "system.threading.tasks.4.3.0.nupkg.sha512"
     },
-    "Victoria/3.3.1": {
-      "type": "package",
-      "serviceable": true,
-      "sha512": "sha512-XU/aILs6+hxwfndEj9SsZ+S4Dc3t+PnzcN8ZCLKzK+v5cA1BP17WFoQTQGFepWR9uLdAz8RcUa8UFiayOdlXGQ==",
-      "path": "victoria/3.3.1",
-      "hashPath": "victoria.3.3.1.nupkg.sha512"
-    },
     "Yande.re/0.1.0": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-2lRGCN15c1Ob6Ek6+H4Yh4fHcHojwaFqNq3a11vmYn8QMM9mOGkwJJo0Wzj2oP6t21Q4hoj8d6LNFyg6gGqlTA==",
       "path": "yande.re/0.1.0",
       "hashPath": "yande.re.0.1.0.nupkg.sha512"
+    },
+    "YoutubeSearch.dll/1.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HIewHh+oCd0kz/LJr/uEUl5W5zOtCTtccQIBE5DlCt9AG+7C9ibtm12ix8YW/qUV0hBttDpHAJ0PAAS+FoRP/Q==",
+      "path": "youtubesearch.dll/1.1.0",
+      "hashPath": "youtubesearch.dll.1.1.0.nupkg.sha512"
     }
   }
 }

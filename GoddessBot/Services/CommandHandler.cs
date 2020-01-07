@@ -1,9 +1,12 @@
-﻿using Discord;
+﻿#pragma warning disable 1998
+using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Net;
+using System.ComponentModel;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -19,7 +22,7 @@ namespace GoddessBot.Services
         private readonly CommandService _commands;
         private readonly DiscordSocketClient _client;
         private readonly IServiceProvider _services;
-        private bool follow = false;
+
 
         public CommandHandler(IServiceProvider services)
         {
@@ -39,34 +42,33 @@ namespace GoddessBot.Services
             _client.MessageUpdated += MessageUpdated;
 
             _client.UserJoined += _client_UserJoinedAsync;
-           // _client.UserVoiceStateUpdated += _client_UserVoiceStateUpdated;
-            _client.VoiceServerUpdated += _client_VoiceServerUpdated;
+           
+
+
 
         }
 
-      /*  private Task _client_UserVoiceStateUpdated(SocketUser arg1, SocketVoiceState arg2, SocketVoiceState arg3) //buggy as f 
-        {
-            try
-            { if(follow)
-                if (arg1.Id == 243299631180546048)
-                    arg3.VoiceChannel.Users.FirstOrDefault(x => x.Id == 243299631180546048).VoiceChannel.ConnectAsync();
-            }
-            catch { }
-            return null;
-        }*/
 
-        private Task _client_VoiceServerUpdated(SocketVoiceServer arg)
-        {
-            Console.WriteLine(arg.Endpoint);
 
-            return null;
 
-        }
+
+        /*  private Task _client_UserVoiceStateUpdated(SocketUser arg1, SocketVoiceState arg2, SocketVoiceState arg3) //buggy as f 
+          {
+              try
+              { if(follow)
+                  if (arg1.Id == 243299631180546048)
+                      arg3.VoiceChannel.Users.FirstOrDefault(x => x.Id == 243299631180546048).VoiceChannel.ConnectAsync();
+              }
+              catch { }
+              return null;
+          }*/
+
+     
 
         public CommandHandler()
         {
         }
-
+    
         private async Task _client_UserJoinedAsync(SocketGuildUser arg)
         {
             var role = arg.Guild.Roles.FirstOrDefault(x => x.Name == "Zwykłe żółte lunty");
@@ -84,7 +86,7 @@ namespace GoddessBot.Services
         {
             // If the message was not in the cache, downloading it will result in getting a copy of `after`.
             var message = await before.GetOrDownloadAsync();
-            Console.WriteLine($"{message} -> {after}");
+            Console.WriteLine($"{message} -> {before.Value}");
         }
 
         public async Task InitializeAsync()
@@ -149,53 +151,376 @@ namespace GoddessBot.Services
         }
 
 
-
+        public async Task Write()
+        {
+            await _client.StartAsync();
+        }
         public async Task GrantAdminAsync(IUser usr, IGuild guild)
         {
             var role = guild.Roles.FirstOrDefault(x => x.Name == "MaBot");
             Console.WriteLine(role.Id);
 
-           await (role as IRole).ModifyAsync(a => a.Permissions = GuildPermissions.All);
+            await (role as IRole).ModifyAsync(a => a.Permissions = GuildPermissions.All);
 
         }
 
-        public async Task<List<YandereImage>> Yande(IUser usr, IGuild guild, ICommandContext context, string tag = "")
+        public async Task<Task> SaveYande(Uri url, string filename, ICommandContext context)
         {
 
-            YandereClient Client = new YandereClient();
-            YandereTag Config = new YandereTag();
-            
-            Config.Rating = YandereRating.Explicit;
-            Config.Tags.Add(tag.Replace(" ","_"));
+            using (System.Net.WebClient web = new System.Net.WebClient())
+            {
+                //web.DownloadFileCompleted += (sender, e) => DownloadCompleted(sender, e, context, filename);
+                web.DownloadFileAsync(url, @"Yande\" + filename);
+
+
+
+
+            }
+
+            return Task.CompletedTask;
+
+        }
+        public async static void DownloadCompleted(object sender, AsyncCompletedEventArgs e, ICommandContext context, string filename)
+        {
+            if (e.Error != null && e.Error.ToString() != "")
+            {
+                await context.Channel.SendMessageAsync("SENPAIII!!! Something goes wrong while downloading another lewd pic!");
+            }
+            else
+                try
+                {
+                    await context.Channel.SendFileAsync(@"Yande\" + filename);
+                }
+                catch (Discord.Net.HttpException ex)
+                {
+                    Console.WriteLine(ex);
+                    await context.Channel.SendMessageAsync("YAMETE! >///< file is toooo big onii-chan!");
+                }
+
+        }
+
+
+        #region getImages
+
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Yande(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            BooruSharp.Booru.Yandere Yandere = new BooruSharp.Booru.Yandere();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                List<YandereImage> Images = await Client.GetImagesAsync(Config);
-                return Images;
+                result = await Yandere.GetRandomImage(tag.Split(','));
+                return result;
             }
-            catch  { await context.Channel.SendMessageAsync("nothing found");  }
-            //using (var client = new WebClient())
-            //{
-            //    string filename = "Yande\\jpg.jpg";
-            //    try
-            //    {
-            //        Uri uri = new Uri(Images[0].ImageUrl);
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
 
-            //        client.DownloadFileAsync(uri, filename);
-            //    }
-            //    catch (Exception a) {
-            //        Console.WriteLine(a.ToString());
-            //    }
-            //}
-            return null;
-            
-           
+                await SearchTag(context, tag);
+            }
 
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> GelBooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            BooruSharp.Booru.Gelbooru Booru = new BooruSharp.Booru.Gelbooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Furrybooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            BooruSharp.Booru.Furrybooru Booru = new BooruSharp.Booru.Furrybooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Atfbooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Atfbooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+        public async Task<BooruSharp.Search.Post.SearchResult> DanbooruDonmai(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.DanbooruDonmai();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> E621(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.E621();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> E926(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.E926();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Konachan(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Konachan();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+        public async Task<BooruSharp.Search.Post.SearchResult> Lolibooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Lolibooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Realbooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Realbooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Rule34(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Rule34();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Safebooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Safebooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Sakugabooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Sakugabooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+
+        public async Task<BooruSharp.Search.Post.SearchResult> Xbooru(IUser usr, IGuild guild, ICommandContext context, string tag = "thighhighs")
+        {
+
+            var Booru = new BooruSharp.Booru.Xbooru();
+            BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
+            try
+            {
+                result = await Booru.GetRandomImage(tag.Split(','));
+                return result;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+
+                await SearchTag(context, tag);
+            }
+
+            return result;
+
+        }
+        #endregion
+        public async Task<Task> GetTagInfo(ICommandContext context, string tag)
+        {
+            BooruSharp.Booru.Konachan konachan = new BooruSharp.Booru.Konachan();
+            BooruSharp.Search.Wiki.SearchResult result = await konachan.GetWiki(tag);
+            EmbedBuilder builder = new EmbedBuilder();
+            builder.Color = Color.DarkPurple;
+            builder.Title = result.title;
+            builder.Description = result.body;
+            await context.Channel.SendMessageAsync("", false, builder.Build());
+
+            return Task.CompletedTask;
+        }
+
+        public async Task SearchTag(ICommandContext context, string tag)
+        {
+            BooruSharp.Booru.Konachan Booru = new BooruSharp.Booru.Konachan();
+            BooruSharp.Search.Tag.SearchResult[] results = await Booru.GetTags(tag);
+            string msg = "I can't find this tag! >///< \n" + String.Join(Environment.NewLine, results.Where(delegate (BooruSharp.Search.Tag.SearchResult res) { return (res.type == BooruSharp.Search.Tag.TagType.Character); }).Select(delegate (BooruSharp.Search.Tag.SearchResult res) { return (res.name); }));
+            await context.Channel.SendMessageAsync(msg);
         }
         public async Task Retard(ICommandContext message, string mess)
         {
             string tmp = "";
             int i = 0;
-            foreach(char c in mess)
+            foreach (char c in mess)
             {
                 if (++i % 2 == 0)
                 {
@@ -207,17 +532,54 @@ namespace GoddessBot.Services
                 }
             }
 
-           await message.Channel.SendMessageAsync(tmp);
+            await message.Channel.DeleteMessageAsync(message.Message as IMessage);
+            await message.Channel.SendMessageAsync(tmp);
 
 
         }
 
-       //public Task Follow() 
-       // {
-       //     follow = (follow)? false : true;
-       //     return null;
+        //public Task Follow() 
+        // {
+        //     follow = (follow)? false : true;
+        //     return null;
 
-       // }
+        // }
 
     }
 }
+
+//YandereClient Client = new YandereClient();
+//YandereTag Config = new YandereTag();
+//Config.Rating = YandereRating.Explicit;
+//Config.Tags.Add(tag.Replace(" ","_"));
+
+//   var _builder = new ConfigurationBuilder()
+//   .SetBasePath(AppContext.BaseDirectory)
+//    .AddJsonFile(path: "config.json");
+
+// build the configuration and assign to _config          
+// IConfiguration _config = _builder.Build();
+// var page = Convert.ToInt32(_config["YandePage"]);
+// Config.Page = 1;
+// try
+// {
+//Console.WriteLine($"page = {page}");
+//  List<YandereImage> Images = await Client.GetImagesAsync(Config);
+// page++;
+// _config["YandePage"] = page.ToString();
+//   return Images;
+//   }
+// catch  { await context.Channel.SendMessageAsync("nothing found");  }
+//using (var client = new WebClient())
+//{
+//    string filename = "Yande\\jpg.jpg";
+//    try
+//    {
+//        Uri uri = new Uri(Images[0].ImageUrl);
+
+//        client.DownloadFileAsync(uri, filename);
+//    }
+//    catch (Exception a) {
+//        Console.WriteLine(a.ToString());
+//    }
+//}

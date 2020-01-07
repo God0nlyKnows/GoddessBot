@@ -1,29 +1,35 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using Discord;
 using Discord.Audio;
 using Discord.Commands;
 using Discord.WebSocket;
-using GoddessBot.Modules;
+using Discord.Audio.Streams;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Threading;
+using System.Text;
+using YoutubeSearch;
 
 namespace GoddessBot.Services
 {
     public class AudioService
     {
 
+
         private readonly ConcurrentDictionary<ulong, IAudioClient> ConnectedChannels = new ConcurrentDictionary<ulong, IAudioClient>();
         private bool loop = false;
-
-        class AudioHandler
-        {
-            public AudioOutStream stream;
-            public Process ffmpeg;
-        }
+        private bool isPlaying = false;
+        private bool isSkipped = false;
+        private List<string[]> queue = new List<string[]>();
+        private CancellationTokenSource cancelToken = new CancellationTokenSource();
+        private AudioOutStream stream;
+        private Process ffmpeg;
 
 
 
@@ -43,129 +49,221 @@ namespace GoddessBot.Services
 
             if (ConnectedChannels.TryAdd(guild.Id, audioClient))
             {
-                
+
                 //await Log(LogSeverity.Info, $"Connected to voice on {guild.Name}.");
             }
         }
 
-     
 
-        
-        public async Task SendAsync(IGuild guild, IMessageChannel channel, string path)
+
+
+        public async Task SendAsync(IGuild guild, IMessageChannel channel, string path, string param)
         {
 
-            var handler = new AudioHandler();
+            if (path == "mood")
+                path = "https://www.youtube.com/playlist?list=PLHXbqPfGR9PX1wFk4w-Q-v5ySE01I1pYe";
+            else if (path == "gg")
+                path = "https://www.youtube.com/playlist?list=PLHXbqPfGR9PV3Sw-sDHll8aZXD39Xw62l";
+            else if (path == "jojo")
+                path = "https://www.youtube.com/playlist?list=PLHXbqPfGR9PXBg1Xdid7aqW0DQcgackpy";
+
+
+            if (!(path.Contains("youtube") || path.Contains("youtu.be")))
+            {
+                try
+                {
+                    var items = new VideoSearch();
+
+                    var tmp = items.SearchQuery(path, 1)[0];
+
+                    path = tmp.Url;
+
+                    EmbedBuilder bd = new EmbedBuilder();
+                    bd.ThumbnailUrl = tmp.Thumbnail;
+                    bd.Title = "Yatta I Found This! UwU";
+                    bd.Description = tmp.Title + " " + tmp.Url;
+                    await channel.SendMessageAsync("", false, bd.Build());
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                    await channel.SendMessageAsync("GOMENASAI! ;C I Can't Find Anything ;<");
+                }
+            }
+
+            if (isPlaying)
+            {
+                GetYoutubeList(path, param);
+                return;
+            }
+
+
 
             try
             {
 
-                if (handler.ffmpeg != null)
-                    handler.ffmpeg.Kill();
-                
+                if (ffmpeg != null)
+                    if (!ffmpeg.HasExited)
+                        ffmpeg.Kill();
+
 
             }
             catch { }
 
-            
-            
 
-            if (path.Contains("you"))
+
+
+
+            IAudioClient client;
+            if (ConnectedChannels.TryGetValue(guild.Id, out client))
             {
-                IAudioClient client;
-                if (ConnectedChannels.TryGetValue(guild.Id, out client))
+                System.Console.WriteLine($"Starting playback of {path} in {guild.Name}");
+
+                var watch = System.Diagnostics.Stopwatch.StartNew();
+                GetYoutubeList(path, param);
+                watch.Stop();
+                Console.WriteLine("Get youtubelist: " + watch.ElapsedMilliseconds);
+
+                try
                 {
-                    System.Console.WriteLine($"Starting playback of {path} in {guild.Name}");
-                    
-                    if (path.Contains("playlist"))                  //need to clean this mess
+
+                    while (queue.Count != 0)
                     {
-                        GetYoutubeList(path);
+
+                        cancelToken = new CancellationTokenSource();
+                        var line = queue[0];
 
 
-                        foreach (string line in File.ReadAllLines(@"Music\queue.txt"))
+                        watch.Start();
+                        CreateYoutubeStream(line[0]);
+                        watch.Stop();
+                        Console.WriteLine("Get youtubeStream: " + watch.ElapsedMilliseconds);
+
+                        queue.Remove(line);
+                        do
                         {
-                            CreateYoutubeStream(line);
 
-                            do
+                            using (ffmpeg = CreateStream(@"Music\mp3.mp3"))
+                            using (stream = client.CreatePCMStream(AudioApplication.Music, 96000, 1000, 1))
                             {
-                                using (handler.ffmpeg = CreateStream(@"Music\mp3.mp3"))
-                                using (handler.stream = client.CreatePCMStream(AudioApplication.Music, 96000, 1000, 1))
+                                try
                                 {
+
+                                    await channel.SendMessageAsync("Now playing: " + line[1]);
+                                    isPlaying = true;
+                                    await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream, cancelToken.Token);
+
+
+                                }
+                                catch (Exception e) { Console.WriteLine(e.ToString()); }
+                                finally
+                                {
+
+                                    await stream.FlushAsync();
+                                    isPlaying = false;
                                     try
                                     {
 
-                                        handler.ffmpeg.StandardOutput.BaseStream.CopyTo(handler.stream);
-
+                                        if (!ffmpeg.HasExited)
+                                            ffmpeg.Kill();
                                     }
-                                    catch (Exception e) { Console.WriteLine(e.ToString()); }
-                                    finally { await handler.stream.FlushAsync(); }
+                                    catch { }
+
                                 }
-                            } while (loop);
-                        }
-
-
-                    }
-                     else
-                    {
-                    
-                    CreateYoutubeStream(path);
-                    do
-                    {
-                        using (handler.ffmpeg = CreateStream("Music\\mp3.mp3"))
-                        using (handler.stream = client.CreatePCMStream(AudioApplication.Music, 96000, 500, 80))
-                        {
-
-                            try
-                            {
-
-                                handler.ffmpeg.StandardOutput.BaseStream.CopyTo(handler.stream);
-
                             }
-                            catch (Exception e) { Console.WriteLine(e.ToString()); }
-                            finally { await handler.stream.FlushAsync(); }
-                        }
-                    } while (loop);
+                            if (cancelToken.IsCancellationRequested)
+                            {
+                                isPlaying = false;
+                                if (isSkipped)
+                                    break;
+                                else
+                                    return;
+                            }
+                        } while (loop);
+
                     }
-
-
                 }
-           
+                catch (Exception ex) { Console.WriteLine(ex); }
+
+
+
+
+
             }
+
+
+
         }
 
-        public async Task SendTextAsync(SocketCommandContext context, string text)
+        public async Task SendTextAsync(SocketCommandContext context, string text, Embed builder)
         {
-            await context.Channel.SendMessageAsync(text);
+            var sock = new SocketCommandContext(context.Client, context.Message);
+            await sock.Channel.SendMessageAsync(text, false, builder);
         }
 
 
         public async Task SendFileAsync(SocketCommandContext context, string path)
         {
             await context.Channel.SendFileAsync(path);
-      
+
         }
-      
 
-        public async Task StreamRadio(IAudioClient client, string url)
+
+        public async Task<Task> StreamRadio(ICommandContext context, string url)
         {
-            /*
-            WebResponse res = await WebRequest.Create(@"http://uk5.internet-radio.com:8278/live").GetResponseAsync();
-            Console.WriteLine(res.ContentLength);
-            Stream web = res.GetResponseStream();
-            var ffmpeg = CreateRadioStream();
-            var input = ffmpeg.StandardInput.BaseStream;
-            var output = ffmpeg.StandardOutput.BaseStream;
-            var discord = client.CreatePCMStream(AudioApplication.Mixed, 1920);
 
-            web.CopyTo(input);
-            await output.CopyToAsync(discord);
-            await discord.FlushAsync();
-            if (DependencyMap.Get<VoiceService>().inUse())
-                DependencyMap.Get<VoiceService>().stopContext();
-            */
+            cancelToken = new CancellationTokenSource();
+            IAudioClient client;
+            if (ConnectedChannels.TryGetValue(context.Guild.Id, out client))
+            {
+                using (System.Net.WebResponse res = await System.Net.WebRequest.Create(url).GetResponseAsync())
+                {
+
+                    EmbedBuilder bd = new EmbedBuilder();
+                    bd.Title = "Radio: " + res.Headers.Get("icy-name");
+                    bd.Description = "Genre: " + res.Headers.Get("icy-genre") + "\nUrl: " + res.Headers.Get("icy-url");
+                    await context.Channel.SendMessageAsync("", false, bd.Build());
+
+                }
+                using (ffmpeg = CreateStream(url))
+                using (stream = client.CreatePCMStream(AudioApplication.Music, 96000, 1000, 1))
+                {
+                    try
+                    {
+                        isPlaying = true;
+                        await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream, cancelToken.Token);
+
+                    }
+                    catch (Exception e) { Console.WriteLine(e.ToString()); }
+                    finally
+                    {
+
+                        await stream.FlushAsync();
+                        isPlaying = false;
+                        try
+                        {
+
+                            if (!ffmpeg.HasExited)
+                                ffmpeg.Kill();
+                        }
+                        catch { }
+
+                    }
+                }
+                if (cancelToken.IsCancellationRequested)
+                {
+                    isPlaying = false;
+                    return Task.CompletedTask;
+                }
+
+            }
+            return Task.CompletedTask;
+
         }
 
         private Process CreateStream(string path)
         {
+
             ProcessStartInfo ffmpeg = new ProcessStartInfo
             {
                 FileName = @"ffmpeg",
@@ -173,17 +271,39 @@ namespace GoddessBot.Services
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 CreateNoWindow = true
+
             };
-            return Process.Start(ffmpeg);
+
+            var handler = Process.Start(ffmpeg);
+            return handler;
         }
 
         private void CreateYoutubeStream(string url)
         {
-            if (File.Exists("Music\\mp3.mp3"))
-                File.Delete("Music\\mp3.mp3");
+
+            try
+            {
+                foreach (Process proc in Process.GetProcessesByName("ffmpeg"))
+                {
+                    proc.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            try
+            {
+                if (File.Exists("Music\\mp3.mp3"))
+                    File.Delete("Music\\mp3.mp3");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
             ProcessStartInfo process = new ProcessStartInfo
             {
-                
+
                 FileName = @"youtube-dl",
                 Arguments = $@" --audio-quality 0 --extract-audio --no-continue --audio-format mp3 {url} -o Music\mp3.mp3",
                 UseShellExecute = false,
@@ -192,32 +312,112 @@ namespace GoddessBot.Services
             };
             var handler = Process.Start(process);
             handler.WaitForExit();
-            
+
         }
 
-        private void GetYoutubeList(string url)
+        private void GetYoutubeList(string url, string param)
         {
 
             ProcessStartInfo process = new ProcessStartInfo
             {
 
-                FileName = "D:\\home\\site\\wwwroot\\app_data\\Music\\bat.bat",
-                Arguments = $"{url}",
+                FileName = "youtube-dl",
+                Arguments = $"-j --flat-playlist {param} \"{url}\"",
                 UseShellExecute = false,
-                RedirectStandardOutput = false,
+                RedirectStandardOutput = true,
                 CreateNoWindow = false
             };
-            Console.WriteLine($"D:\\home\\site\\wwwroot\\app_data\\Jobs\\Continuous\\GoddessBot\\3rdPartyApp\\youtube-dl --dump-json --flat-playlist \"{url}\" | D:\\home\\site\\wwwroot\\app_data\\Jobs\\Continuous\\GoddessBot\\3rdPartyApp\\jq -r \".id\" | D:\\home\\site\\wwwroot\\app_data\\Jobs\\Continuous\\GoddessBot\\3rdPartyApp\\sed\\sed \"s_^_https://youtu.be/_\" > D:\\home\\site\\wwwroot\\app_data\\Music\\queue.txt");
             var handler = Process.Start(process);
-            handler.WaitForExit();
-            
+
+
+
+
+            string tmp;
+            while ((tmp = handler.StandardOutput.ReadLine()) != null)
+            {
+
+                var json = JObject.Parse(tmp);
+                string[] str = { "https://youtu.be/" + json.SelectToken("id").ToString(), json.SelectToken("title").ToString() };
+                queue.Add(str);
+
+
+            }
+
+            handler.Close();
+
         }
 
         public async Task Stop()
         {
-            var handler = new AudioHandler();
-            handler.ffmpeg.Kill();
-            await handler.stream.FlushAsync();
+            cancelToken.Cancel();
+            ffmpeg.Close();
+            await stream.FlushAsync();
+
+        }
+
+        public async Task Clear()
+        {
+            cancelToken.Cancel();
+            ffmpeg.Kill();
+            await stream.FlushAsync();
+            queue.Clear();
+        }
+#pragma warning disable CS1998
+        public async Task<Task> Szufluj()
+        {
+            Random random = new Random();
+            queue = queue.OrderBy(x => random.Next(0, queue.Count)).ToList();
+            return Task.CompletedTask;
+        }
+
+        public async Task<Task> Reverse()
+        {
+
+            queue.Reverse();
+            return Task.CompletedTask;
+        }
+
+        public async Task<Task> JumpTo(int x)
+        {
+
+            var tmp = queue.ElementAt(x);
+            queue.RemoveAt(x);
+            queue.Insert(0, tmp);
+            isSkipped = true;
+            cancelToken.Cancel();
+            ffmpeg.Kill();
+            await stream.FlushAsync();
+            return Task.CompletedTask;
+        }
+
+        public async Task<Task> Remove(int x)
+        {
+            queue.RemoveAt(x);
+            return Task.CompletedTask;
+        }
+
+        public async Task Queue(ICommandContext context)
+        {
+            EmbedBuilder build = new EmbedBuilder();
+            build.Title = "Current Queue";
+            string queuelist = "";
+            queue.ForEach(x => queuelist += queue.IndexOf(x) + ". " + x[1] + "\n");
+            if (queuelist.Length > 1800)
+                build.Description = queuelist.Substring(0, 1800) + "...";
+            else
+                build.Description = queuelist;
+            build.Color = Color.Purple;
+            var ss = build.Build();
+            await SendTextAsync(context as SocketCommandContext, "", ss);
+        }
+
+        public async Task Skip(int x = 0)
+        {
+            isSkipped = true;
+            cancelToken.Cancel();
+            ffmpeg.Kill();
+            await stream.FlushAsync();
+            queue.RemoveRange(0, x);
         }
 
         public async Task LeaveAudio(IGuild guild)
@@ -235,7 +435,44 @@ namespace GoddessBot.Services
             loop = (loop) ? false : true;
             string reply = (loop) ? "loop enabled" : "loop disabled";
             await message.Channel.SendMessageAsync(reply);
-           
+
+        }
+
+
+        private static bool IsValidJson(string strInput)
+        {
+            try
+            {
+                strInput = strInput.Trim();
+                if ((strInput.StartsWith("{") && strInput.EndsWith("}")) ||
+                    (strInput.StartsWith("[") && strInput.EndsWith("]")))
+                {
+                    try
+                    {
+                        var obj = JToken.Parse(strInput);
+                        return true;
+                    }
+                    catch (JsonReaderException jex)
+                    {
+                        //Exception in parsing json
+                        Console.WriteLine(jex.Message);
+                        return false;
+                    }
+                    catch (Exception ex) //some other exception
+                    {
+                        Console.WriteLine(ex.ToString());
+                        return false;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

@@ -70,7 +70,8 @@ namespace GoddessBot
 
         private Task ReadyAsync()
         {
-            Console.WriteLine($"Connected as -> [] :)");
+            Info._client.SetGameAsync("God 0nly Knows, Bcs He Is My Love <3 >///< !",null,ActivityType.Watching);
+            Console.WriteLine($"I'm Ready!");
             return Task.CompletedTask;
         }
 
