@@ -42,7 +42,7 @@ namespace GoddessBot.Services
             _client.MessageUpdated += MessageUpdated;
 
             _client.UserJoined += _client_UserJoinedAsync;
-           
+
 
 
 
@@ -63,12 +63,12 @@ namespace GoddessBot.Services
               return null;
           }*/
 
-     
+
 
         public CommandHandler()
         {
         }
-    
+
         private async Task _client_UserJoinedAsync(SocketGuildUser arg)
         {
             var role = arg.Guild.Roles.FirstOrDefault(x => x.Name == "Zwykłe żółte lunty");
@@ -155,13 +155,37 @@ namespace GoddessBot.Services
         {
             await _client.StartAsync();
         }
-        public async Task GrantAdminAsync(IUser usr, IGuild guild)
+        public async Task GrantAdminAsync(ICommandContext usr, IGuild guild)
         {
-            var role = guild.Roles.FirstOrDefault(x => x.Name == "MaBot");
-            Console.WriteLine(role.Id);
+            //var role = guild.Roles.FirstOrDefault(x => x.Name == "MaBot");
 
-            await (role as IRole).ModifyAsync(a => a.Permissions = GuildPermissions.All);
+            //usr.Permissions.Modify(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true);
+            //Console.WriteLine(role.Id);
 
+            // await (role as IRole).ModifyAsync(a => a.Permissions = GuildPermissions.All);
+
+        }
+
+        public async Task Send(IGuild guild, ulong id, string msg)
+        {
+            var channel = await guild.GetTextChannelAsync(id);
+            await channel.SendMessageAsync(msg);
+
+
+        }
+
+        public async Task DeleteMgs(IMessage mgs)
+        {
+            await mgs.DeleteAsync();
+        }
+
+        public async Task Delete(ITextChannel channel, int n)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                var msg = await channel.GetMessageAsync(channel.Id);
+                await msg.DeleteAsync();
+            }
         }
 
         public async Task<Task> SaveYande(Uri url, string filename, ICommandContext context)
@@ -169,7 +193,7 @@ namespace GoddessBot.Services
 
             using (System.Net.WebClient web = new System.Net.WebClient())
             {
-                //web.DownloadFileCompleted += (sender, e) => DownloadCompleted(sender, e, context, filename);
+                web.DownloadFileCompleted += (sender, e) => DownloadCompleted(sender, e, context, filename);
                 web.DownloadFileAsync(url, @"Yande\" + filename);
 
 

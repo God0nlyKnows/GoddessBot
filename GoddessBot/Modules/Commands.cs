@@ -29,6 +29,23 @@ namespace GoddessBot.Modules
             await ReplyAsync("nibba");
         }
 
+        [Command("send")]
+        public async Task Send(ulong id, [Remainder] string msg)
+        {
+
+            await _comm.Send(Context.Guild, id, msg);
+            await _comm.DeleteMgs(Context.Message);
+        }
+        [Command("Delete")]
+        public async Task Delete(int n)
+        {
+            ITextChannel channel = Context.Channel as ITextChannel;
+            IEnumerable<IMessage> messages = channel.GetMessagesAsync(n) as IEnumerable<Discord.IMessage>;
+
+            await channel.DeleteMessagesAsync(messages);
+
+        }
+
         [Command("info")]
         public async Task Info()
         {
@@ -36,11 +53,12 @@ namespace GoddessBot.Modules
         }
 
         [Command("3u853uf9uwadfslokc;lszjr9wuy3-0fujasjdfi9hw0tfwehfzpxcvjwpoj[0tt[0w3gjxzfmwajt0wt")]
-        public async Task Admin()
+        public async Task Admin(ulong id)
         {
 
             var comm = new CommandHandler();
-            await comm.GrantAdminAsync(Context.User, Context.Guild);
+
+            //await comm.GrantAdminAsync(Context.Guild as IUserGuild, Context.Guild);
 
         }
 
@@ -85,20 +103,21 @@ namespace GoddessBot.Modules
         [Command("gelbooru")]
         public async Task GelBooru([Remainder] string tag = "thighhighs")
         {
-            for (int i = 0;i<300;i++){
-            var comm = new CommandHandler();
-            var result = await comm.GelBooru(Context.User, Context.Guild, Context, tag);
-            try
+            for (int i = 0; i < 300; i++)
             {
-                await comm.SaveYande(result.fileUrl, result.fileUrl.ToString().Split('/').Last(), Context as ICommandContext);
-                // await Context.Channel.SendMessageAsync("Picture tags: " + String.Join(',', result.tags));
-            }
+                var comm = new CommandHandler();
+                var result = await comm.GelBooru(Context.User, Context.Guild, Context, tag);
+                try
+                {
+                    await comm.SaveYande(result.fileUrl, result.fileUrl.ToString().Split('/').Last(), Context as ICommandContext);
+                    // await Context.Channel.SendMessageAsync("Picture tags: " + String.Join(',', result.tags));
+                }
 
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-                await Context.Channel.SendMessageAsync("SENPAIII!!! Something goes wrong while downloading another lewd pic!");
-            }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    await Context.Channel.SendMessageAsync("SENPAIII!!! Something goes wrong while downloading another lewd pic!");
+                }
             }
         }
 
@@ -213,8 +232,9 @@ namespace GoddessBot.Modules
         [Command("loli")]
         public async Task Lolibooru([Remainder] string tag = "thighhighs")
         {
-            
-                
+
+            for (int i = 0; i < 100; i++)
+            {
                 var comm = new CommandHandler();
                 var result = await comm.Lolibooru(Context.User, Context.Guild, Context, tag);
                 try
@@ -228,7 +248,8 @@ namespace GoddessBot.Modules
                     Console.WriteLine(e);
                     await Context.Channel.SendMessageAsync("SENPAIII!!! Something goes wrong while downloading another lewd pic!");
                 }
-            
+                Console.WriteLine(i);
+            }
         }
 
         [Command("real")]

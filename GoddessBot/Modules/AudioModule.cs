@@ -97,7 +97,11 @@ namespace GoddessBot.Modules
 
             await _service.StreamRadio(Context, url);
         }
-
+        [Command("elevator", RunMode = RunMode.Async)]
+        public async Task Elevator()
+        {
+            await _service.RunElevator(Context.Guild as IGuild);
+        }
         [Command("clear")]
         public async Task Clear()
         {

@@ -15,6 +15,8 @@ using Newtonsoft.Json.Linq;
 using System.Threading;
 using System.Text;
 using YoutubeSearch;
+using System.Security.Cryptography.X509Certificates;
+using System.Timers;
 
 namespace GoddessBot.Services
 {
@@ -30,11 +32,33 @@ namespace GoddessBot.Services
         private CancellationTokenSource cancelToken = new CancellationTokenSource();
         private AudioOutStream stream;
         private Process ffmpeg;
+        private bool elevatorStop = false;
 
 
 
         public async Task ConnectAudio(IGuild guild, IVoiceChannel target)
         {
+            IAudioClient client;
+            if (ConnectedChannels.TryGetValue(guild.Id, out client))
+            {
+                return;
+            }
+            if (target.Guild.Id != guild.Id)
+            {
+                return;
+            }
+
+            var audioClient = await target.ConnectAsync();
+
+            if (ConnectedChannels.TryAdd(guild.Id, audioClient))
+            {
+
+                //await Log(LogSeverity.Info, $"Connected to voice on {guild.Name}.");
+            }
+        }
+        public async Task ConnectAudio(IGuild guild)
+        {
+            IVoiceChannel target = guild.GetVoiceChannelAsync(720008031198380162).Result as IVoiceChannel;
             IAudioClient client;
             if (ConnectedChannels.TryGetValue(guild.Id, out client))
             {
@@ -132,6 +156,7 @@ namespace GoddessBot.Services
 
                         cancelToken = new CancellationTokenSource();
                         var line = queue[0];
+                        Console.WriteLine(line[0]);
 
 
                         watch.Start();
@@ -148,8 +173,8 @@ namespace GoddessBot.Services
                             {
                                 try
                                 {
-
-                                    await channel.SendMessageAsync("Now playing: " + line[1]);
+                                    if (!LastMsgIsMine(channel))
+                                        await channel.SendMessageAsync("Now playing: " + line[1]);
                                     isPlaying = true;
                                     await ffmpeg.StandardOutput.BaseStream.CopyToAsync(stream, cancelToken.Token);
 
@@ -396,6 +421,50 @@ namespace GoddessBot.Services
             return Task.CompletedTask;
         }
 
+
+        public async Task<Task> Elevator(IGuild guild)
+        {
+           
+            elevatorStop = false;
+            loop = true;
+            await ConnectAudio(guild);
+            var x = await Task.Run(() => RunElevator(guild));
+            //await RunElevator(guild);
+            Task y = Task.Run(() => SendAsync(guild, guild.GetTextChannelAsync(606502103925653524).Result as IMessageChannel, "https://www.youtube.com/watch?v=tfu12KV40eU", ""));
+            
+            return Task.CompletedTask;
+        }
+
+        public async Task<Task> RunElevator(IGuild guild)
+        {
+                Random nr = new Random();
+            while (!elevatorStop)
+            {
+               
+                // Hook up the Elapsed event for the timer.
+                IVoiceChannel channel = guild.GetVoiceChannelAsync(720008031198380162).Result as IVoiceChannel;
+                foreach (var cat in guild.GetCategoriesAsync().Result)
+                {
+                    for(int i = 0;i < cat.Guild.GetChannelsAsync().Result.Count; i++)
+                    {
+                        await Task.Delay(1000);
+
+                    channel.ModifyAsync(prop => { prop.Position = i; prop.CategoryId = cat.Id; }).Wait();
+                    }
+                }
+             
+
+            }
+            return Task.CompletedTask;
+        }
+
+        private void OnTimer (Object source, ElapsedEventArgs e,IGuild guild){
+                //System.Console.WriteLine("ss");
+            IVoiceChannel channel = guild.GetVoiceChannelAsync(720008031198380162).Result as IVoiceChannel;
+            Random nr = new Random();
+            channel.ModifyAsync(prop => prop.Position = nr.Next(0, guild.GetChannelsAsync().Result.Count));
+        }
+
         public async Task Queue(ICommandContext context)
         {
             EmbedBuilder build = new EmbedBuilder();
@@ -438,6 +507,15 @@ namespace GoddessBot.Services
 
         }
 
+        private bool LastMsgIsMine(IMessageChannel channel)
+        {
+            var msg = channel.GetMessagesAsync(1);
+
+            if (msg.ElementAt(0).ToString().Contains("Now playing"))
+                return true;
+            else
+                return false;
+        }
 
         private static bool IsValidJson(string strInput)
         {
