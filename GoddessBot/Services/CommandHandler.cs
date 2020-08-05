@@ -234,7 +234,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Yandere.GetRandomImage(tag.Split(','));
+                result = await Yandere.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -255,7 +255,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -276,7 +276,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -297,7 +297,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -317,7 +317,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -338,7 +338,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -359,7 +359,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -381,7 +381,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -401,7 +401,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -422,7 +422,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -443,7 +443,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -464,7 +464,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -485,7 +485,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -506,7 +506,7 @@ namespace GoddessBot.Services
             BooruSharp.Search.Post.SearchResult result = new BooruSharp.Search.Post.SearchResult();
             try
             {
-                result = await Booru.GetRandomImage(tag.Split(','));
+                result = await Booru.GetRandomPostAsync(tag.Split(','));
                 return result;
             }
             catch (Exception e)
@@ -523,7 +523,7 @@ namespace GoddessBot.Services
         public async Task<Task> GetTagInfo(ICommandContext context, string tag)
         {
             BooruSharp.Booru.Konachan konachan = new BooruSharp.Booru.Konachan();
-            BooruSharp.Search.Wiki.SearchResult result = await konachan.GetWiki(tag);
+            BooruSharp.Search.Wiki.SearchResult result = await konachan.GetWikiAsync(tag);
             EmbedBuilder builder = new EmbedBuilder();
             builder.Color = Color.DarkPurple;
             builder.Title = result.title;
@@ -536,7 +536,7 @@ namespace GoddessBot.Services
         public async Task SearchTag(ICommandContext context, string tag)
         {
             BooruSharp.Booru.Konachan Booru = new BooruSharp.Booru.Konachan();
-            BooruSharp.Search.Tag.SearchResult[] results = await Booru.GetTags(tag);
+            BooruSharp.Search.Tag.SearchResult[] results = await Booru.GetTagsAsync(tag);
             string msg = "I can't find this tag! >///< \n" + String.Join(Environment.NewLine, results.Where(delegate (BooruSharp.Search.Tag.SearchResult res) { return (res.type == BooruSharp.Search.Tag.TagType.Character); }).Select(delegate (BooruSharp.Search.Tag.SearchResult res) { return (res.name); }));
             await context.Channel.SendMessageAsync(msg);
         }

@@ -511,7 +511,7 @@ namespace GoddessBot.Services
         {
             var msg = channel.GetMessagesAsync(1);
 
-            if (msg.ElementAt(0).ToString().Contains("Now playing"))
+            if (msg.ElementAtAsync(0).Result.ToString().Contains("Now playing"))
                 return true;
             else
                 return false;
