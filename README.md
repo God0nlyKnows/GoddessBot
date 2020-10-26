@@ -1,8 +1,8 @@
-# GoddessBot Pre-alpha
+# GoddessBot Beta version
 Bot for discord written in c# using Discord.net
 
-Bot is still incomplete, but some functions working like yande or playing music from yt or local drive.
+Bot for playing single music or whole playlist from yt or sending a lot of hentai from servers like rule34, yande.re.
 
-In future i'll make queue for songs and handling yt playlists
+Includes queue list for music
 
 All u need to do its just paste your bot token to config.json
